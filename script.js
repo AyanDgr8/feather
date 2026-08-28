@@ -11,31 +11,21 @@ function dodge(event) {
   const zoneBox = zone.getBoundingClientRect();
   const buttonBox = noButton.getBoundingClientRect();
   const yesBox = yesButton.getBoundingClientRect();
-  const maxX = Math.max(8, zoneBox.width - buttonBox.width - 8);
-  const maxY = Math.max(8, zoneBox.height - buttonBox.height - 8);
-  let x = 8;
-  let y = 8;
-
-  // Keep NO fully visible and away from the YES button.
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const candidateX = 8 + Math.random() * Math.max(0, maxX - 8);
-    const candidateY = 8 + Math.random() * Math.max(0, maxY - 8);
-    const left = zoneBox.left + candidateX;
-    const top = zoneBox.top + candidateY;
-    const overlapsYes = !(
-      left + buttonBox.width + 14 < yesBox.left ||
-      left - 14 > yesBox.right ||
-      top + buttonBox.height + 14 < yesBox.top ||
-      top - 14 > yesBox.bottom
-    );
-
-    x = candidateX;
-    y = candidateY;
-    if (!overlapsYes) break;
-  }
-
-  noButton.style.left = `${Math.min(maxX, Math.max(8, x))}px`;
-  noButton.style.top = `${Math.min(maxY, Math.max(8, y))}px`;
+  const pad = 6;
+  const gap = 12;
+  const yesX = yesBox.left - zoneBox.left;
+  const yesY = yesBox.top - zoneBox.top;
+  const centeredX = yesX + (yesBox.width - buttonBox.width) / 2;
+  const centeredY = yesY + (yesBox.height - buttonBox.height) / 2;
+  const positions = [
+    { x:centeredX, y:yesY - buttonBox.height - gap },
+    { x:yesBox.right - zoneBox.left + gap, y:centeredY },
+    { x:centeredX, y:yesBox.bottom - zoneBox.top + gap },
+    { x:yesX - buttonBox.width - gap, y:centeredY }
+  ].filter(({ x, y }) => x >= pad && y >= pad && x + buttonBox.width <= zoneBox.width - pad && y + buttonBox.height <= zoneBox.height - pad);
+  const spot = positions[escapes % positions.length] || { x:pad, y:pad };
+  noButton.style.left = `${spot.x}px`;
+  noButton.style.top = `${spot.y}px`;
   noButton.style.transform = `rotate(${Math.random() * 18 - 9}deg)`;
   hint.innerHTML = `${messages[escapes % messages.length]} <span>♡</span>`;
   escapes += 1;
@@ -45,6 +35,12 @@ function dodge(event) {
   noButton.addEventListener(eventName, dodge, { passive:false });
 });
 noButton.addEventListener('click', dodge);
+const initialHint = hint.innerHTML;
+requestAnimationFrame(() => {
+  dodge();
+  escapes = 0;
+  hint.innerHTML = initialHint;
+});
 
 yesButton.addEventListener('click', () => {
   yesButton.innerHTML = '<span>BEST ANSWER EVER</span><b>♥</b>';
